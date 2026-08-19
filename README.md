@@ -9,7 +9,7 @@
 3. **新增生成参数面板配置**：`generation` 组新增 语速 `speaking_speed`（0.5~1.5）与采样参数 `do_sample / top_p / top_k / temperature / repetition_penalty / length_penalty / num_beams / max_mel_tokens`，启动时随 /config 推送给后端；默认值与 IndexTTS webui 一致，原版 service.py 会自动忽略这些字段（互不冲突）；
 4. **全 0 情感向量不再推送**——原版总是推送 `[0]*8`，会让后端进入向量模式、丢失音色参考音频自带的情感；
 5. 修复 register 元数据里的仓库地址笔误（原版指向 spark_tts 仓库）；
-6. **复读指令 `/tts_say_it <内容>`**（v1.0.6 新增）：机器人一字不差地念出你输入的内容（不经过 LLM），同时发送语音消息和 wav 文件。权限由 `custom` 组控制：`say_admin_only`（默认开，仅群管理/AstrBot 管理员）、`say_whitelist`（额外放行的 QQ 号）、`say_send_wav_file`（是否附带 wav 文件，默认开）。
+6. **复读指令 `/转语音 <内容>`**（v1.0.7，别名 `/转语言`）：机器人一字不差地念出你输入的内容（不经过 LLM），同时发送语音消息和 wav 文件。权限由 `custom` 组控制：`say_admin_only`（默认开，仅群管理/AstrBot 管理员）、`say_whitelist`（额外放行的 QQ 号）、`say_send_wav_file`（是否附带 wav 文件，默认开）。
 
 ## 推荐部署方式（免下载模型）
 
