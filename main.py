@@ -353,7 +353,7 @@ class TTSManager:
 manager = TTSManager()
 misc = Misc()
 
-@register("astrbot_plugin_index_tts", "xiewoc, xiaoyuyu6420", "基于index-tts对AstrBot的语音转文字(TTS)补充", "1.0.8", "https://github.com/xiaoyuyu6420/astrbot_plugin_index_tts")
+@register("astrbot_plugin_index_tts", "xiewoc, xiaoyuyu6420", "基于index-tts对AstrBot的语音转文字(TTS)补充", "1.0.9", "https://github.com/xiaoyuyu6420/astrbot_plugin_index_tts")
 class AstrbotPluginIndexTTS(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
@@ -529,20 +529,21 @@ class AstrbotPluginIndexTTS(Star):
             pass
         return False
 
-    @filter.command("转语音", alias={"转语言"})
+    @filter.command("转语音", alias={"转语言"}, prefix_optional=True)
     async def tts_say_it(self, event: AstrMessageEvent):
         '''让机器人一字不差地念出你输入的内容（语音 + wav 文件）'''
         if self.say_admin_only and not self._is_allowed_say(event):
             yield event.plain_result("⛔ 该指令仅管理员/白名单可用")
             return
-        # 从 message_str 里去掉指令名（第一个 token），保留后面整段作为念读内容
+        # 兼容：消息可能含指令名（“转语音 内容”）或已被框架去掉指令名（仅“内容”）
         raw = (event.message_str or "").strip()
         if raw.startswith("/"):
             raw = raw[1:].strip()
-        parts = raw.split(maxsplit=1)
-        raw = parts[1].strip() if len(parts) > 1 else ""
+        tokens = raw.split(maxsplit=1)
+        if tokens and tokens[0] in ("转语音", "转语言"):
+            raw = tokens[1].strip() if len(tokens) > 1 else ""
         if not raw:
-            yield event.plain_result("用法：/转语音 <要念的内容>\n示例：/转语音 今天天气真不错呀")
+            yield event.plain_result("用法：转语音 <要念的内容>\n示例：转语音 今天天气真不错呀\n（也可 @机器人 后发：转语音 内容）")
             return
 
         # 状态提示：先告诉用户开始处理了（多次 yield，AstrBot 会逐条发送）
