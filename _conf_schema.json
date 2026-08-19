@@ -110,6 +110,60 @@
                 "hint": "随机因子越大，事件概率越大，也就越容易触发",
                 "type": "float",
                 "default": 0.3
+            },
+            "speaking_speed":{
+                "description": "语速",
+                "hint": "0.5~1.5，默认1.0；需后端支持（indextts2-astrbot-api），原版service.py会忽略",
+                "type": "float",
+                "default": 1.0
+            },
+            "do_sample":{
+                "description": "是否采样",
+                "hint": "需后端支持，原版service.py会忽略",
+                "type": "bool",
+                "default": true
+            },
+            "top_p":{
+                "description": "采样top_p",
+                "hint": "需后端支持，原版service.py会忽略",
+                "type": "float",
+                "default": 0.8
+            },
+            "top_k":{
+                "description": "采样top_k",
+                "hint": "0表示不启用；需后端支持，原版service.py会忽略",
+                "type": "int",
+                "default": 30
+            },
+            "temperature":{
+                "description": "采样temperature",
+                "hint": "需后端支持，原版service.py会忽略",
+                "type": "float",
+                "default": 0.8
+            },
+            "repetition_penalty":{
+                "description": "重复惩罚",
+                "hint": "需后端支持，原版service.py会忽略",
+                "type": "float",
+                "default": 10.0
+            },
+            "length_penalty":{
+                "description": "长度惩罚",
+                "hint": "需后端支持，原版service.py会忽略",
+                "type": "float",
+                "default": 0.0
+            },
+            "num_beams":{
+                "description": "beam search数量",
+                "hint": "需后端支持，原版service.py会忽略",
+                "type": "int",
+                "default": 3
+            },
+            "max_mel_tokens":{
+                "description": "生成Token最大数量",
+                "hint": "过小导致音频截断；需后端支持，原版service.py会忽略",
+                "type": "int",
+                "default": 1500
             }
         }
     },
@@ -123,11 +177,23 @@
                 "hint": "若为本机使用则不需要更改,即127.0.0.1",
                 "default": "127.0.0.1"
             },
+            "server_port":{
+                "description": "服务端口",
+                "type": "int",
+                "hint": "原版固定5210，本fork可改",
+                "default": 5210
+            },
             "if_seperate_serve": {
                 "description": "是否使用分布式部署",
                 "type": "bool",
                 "hint": "开启此选项后，本插件就不会自己启动service.py了，且按照服务器地址去访问api",
                 "default": false
+            },
+            "request_timeout": {
+                "description": "合成请求超时(秒)",
+                "type": "int",
+                "hint": "原版硬编码120秒，长文本在消费级显卡上会超时；默认600秒",
+                "default": 600
             },
             "CORRECT_API_KEY": {
                 "description": "api密钥",

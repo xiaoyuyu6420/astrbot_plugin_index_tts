@@ -45,7 +45,7 @@ class RandomTTS:
         pass
     
     @staticmethod
-    async def random_replace(chain: list, random_factor: float, server_ip: str, CORRECT_API_KEY: str):
+    async def random_replace(chain: list, random_factor: float, server_ip: str, CORRECT_API_KEY: str, timeout_seconds: float = 600.0):
         randfloat = random()
         if randfloat <= random_factor:
             logger.info(f"Random TTS triggered,factor: {randfloat} in {random_factor}")
@@ -61,7 +61,7 @@ class RandomTTS:
                             text_whole,
                             CORRECT_API_KEY,
                             output_path,                                            #这里用全局定义的
-                            timeout_seconds=120.0                                   #不够用再改 
+                            timeout_seconds=timeout_seconds
                             )
                         chain = [
                             Record.fromFileSystem(wav_path) # type: ignore
@@ -353,7 +353,7 @@ class TTSManager:
 manager = TTSManager()
 misc = Misc()
 
-@register("astrbot_plugin_index_tts", "xiewoc ", "基于index-tts对AstrBot的语音转文字(TTS)补充", "1.0.4", "https://github.com/xiewoc/astrbot_plugin_spark_tts")
+@register("astrbot_plugin_index_tts", "xiewoc, xiaoyuyu6420", "基于index-tts对AstrBot的语音转文字(TTS)补充", "1.0.5", "https://github.com/xiaoyuyu6420/astrbot_plugin_index_tts")
 class AstrbotPluginIndexTTS(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
@@ -384,12 +384,27 @@ class AstrbotPluginIndexTTS(Star):
         self.max_text_tokens_per_sentence = sub_config_generation.get("max_text_tokens_per_sentence", 100)
         self.if_random_tts = sub_config_generation.get("if_random_tts", False)
         self.random_factor = sub_config_generation.get("random_factor", 0.3)
+        # 高级生成参数（需后端支持：xiaoyuyu6420/indextts2-astrbot-api 的 /config；原版 service.py 会忽略未知字段）
+        self.speaking_speed = sub_config_generation.get("speaking_speed", 1.0)
+        self.do_sample = sub_config_generation.get("do_sample", True)
+        self.top_p = sub_config_generation.get("top_p", 0.8)
+        self.top_k = sub_config_generation.get("top_k", 30)
+        self.temperature = sub_config_generation.get("temperature", 0.8)
+        self.length_penalty = sub_config_generation.get("length_penalty", 0.0)
+        self.num_beams = sub_config_generation.get("num_beams", 3)
+        self.repetition_penalty = sub_config_generation.get("repetition_penalty", 10.0)
+        self.max_mel_tokens = sub_config_generation.get("max_mel_tokens", 1500)
 
         # 服务器配置子项
         sub_config_serve = config.get('serve_config', {})
         self.server_ip = sub_config_serve.get("server_ip", "127.0.0.1")
         self.if_seperate_serve = sub_config_serve.get("if_seperate_serve", False)
         self.CORRECT_API_KEY = sub_config_serve.get("CORRECT_API_KEY", "")
+        # 请求超时（秒）：长文本在消费级显卡上合成可能超过原版硬编码的 120s
+        self.request_timeout = float(sub_config_serve.get("request_timeout", 600))
+        # 服务端口可配置（原版硬编码 5210）
+        global port
+        port = str(sub_config_serve.get("server_port", 5210))
         
         # 确保必要的目录存在
         misc._ensure_directories()
@@ -419,8 +434,20 @@ class AstrbotPluginIndexTTS(Star):
                     "interval_silence": self.interval_silence,
                     "emo_audio_prompt": self.emo_audio_prompt,
                     "emo_text": self.emo_text,
-                    "emo_vector": self.emo_vector
+                    # 高级生成参数透传（后端不识别时自动忽略）
+                    "speaking_speed": self.speaking_speed,
+                    "do_sample": self.do_sample,
+                    "top_p": self.top_p,
+                    "top_k": self.top_k,
+                    "temperature": self.temperature,
+                    "length_penalty": self.length_penalty,
+                    "num_beams": self.num_beams,
+                    "repetition_penalty": self.repetition_penalty,
+                    "max_mel_tokens": self.max_mel_tokens,
                 }
+                # 全 0 情感向量不推送，避免后端误入向量模式（丢失音色自带情感）
+                if any(v for v in self.emo_vector):
+                    params["emo_vector"] = self.emo_vector
 
                 await manager.post_config_with_session_auth(
                     self.server_ip,
@@ -490,7 +517,8 @@ class AstrbotPluginIndexTTS(Star):
                 chain,
                 self.random_factor,
                 self.server_ip,
-                self.CORRECT_API_KEY
+                self.CORRECT_API_KEY,
+                timeout_seconds=self.request_timeout,
                 )
         else:
             pass
@@ -534,7 +562,7 @@ class AstrbotPluginIndexTTS(Star):
                     text,
                     self.CORRECT_API_KEY,
                     output_path,
-                    timeout_seconds=90.0
+                    timeout_seconds=self.request_timeout
                     )
                 chain = [
                     Record.fromFileSystem(wav_path) # type: ignore
