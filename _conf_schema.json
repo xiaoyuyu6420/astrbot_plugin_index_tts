@@ -202,5 +202,29 @@
                 "default": "1145141919810"
             }
         }
+    },
+    "custom":{
+        "description": "定制功能（fork版）",
+        "type": "object",
+        "items": {
+            "say_admin_only":{
+                "description": "复读指令仅管理员可用",
+                "type": "bool",
+                "hint": "开启后 /tts_say_it 仅群管理/AstrBot管理员/白名单可用",
+                "default": true
+            },
+            "say_whitelist":{
+                "description": "复读指令白名单",
+                "type": "list",
+                "hint": "额外允许使用 /tts_say_it 的QQ号列表",
+                "default": []
+            },
+            "say_send_wav_file":{
+                "description": "语音同时附带wav文件",
+                "type": "bool",
+                "hint": "/tts_say_it 发送语音消息时，同时再发送一份wav文件",
+                "default": true
+            }
+        }
     }
 }

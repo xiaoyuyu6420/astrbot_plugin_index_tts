@@ -353,7 +353,7 @@ class TTSManager:
 manager = TTSManager()
 misc = Misc()
 
-@register("astrbot_plugin_index_tts", "xiewoc, xiaoyuyu6420", "基于index-tts对AstrBot的语音转文字(TTS)补充", "1.0.5", "https://github.com/xiaoyuyu6420/astrbot_plugin_index_tts")
+@register("astrbot_plugin_index_tts", "xiewoc, xiaoyuyu6420", "基于index-tts对AstrBot的语音转文字(TTS)补充", "1.0.6", "https://github.com/xiaoyuyu6420/astrbot_plugin_index_tts")
 class AstrbotPluginIndexTTS(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
@@ -405,7 +405,13 @@ class AstrbotPluginIndexTTS(Star):
         # 服务端口可配置（原版硬编码 5210）
         global port
         port = str(sub_config_serve.get("server_port", 5210))
-        
+
+        # 定制功能（fork版）
+        custom = config.get('custom', {})
+        self.say_admin_only = custom.get("say_admin_only", True)
+        self.say_whitelist = [str(x) for x in custom.get("say_whitelist", [])]
+        self.say_send_wav_file = custom.get("say_send_wav_file", True)
+
         # 确保必要的目录存在
         misc._ensure_directories()
         
@@ -507,6 +513,52 @@ class AstrbotPluginIndexTTS(Star):
         except Exception as e:
             logger.error(f"初始服务连接失败: {str(e)}")
             raise
+
+    def _is_allowed_say(self, event: AstrMessageEvent) -> bool:
+        """复读指令权限：白名单 / 群管理 / AstrBot 管理员 任一命中即放行"""
+        sender = str(event.get_sender_id())
+        if sender in self.say_whitelist:
+            return True
+        if getattr(event, "role", None) in ("admin", "owner"):
+            return True
+        try:
+            admins = self.context.get_config().get("admins_id", []) or []
+            if sender in [str(a) for a in admins]:
+                return True
+        except Exception:
+            pass
+        return False
+
+    @filter.command("tts_say_it")
+    async def tts_say_it(self, event: AstrMessageEvent):
+        '''让机器人一字不差地念出你输入的内容（语音 + wav 文件）'''
+        if self.say_admin_only and not self._is_allowed_say(event):
+            yield event.plain_result("该指令仅管理员/白名单可用")
+            return
+        raw = (event.message_str or "").strip()
+        if raw.startswith("/"):
+            raw = raw[1:].strip()
+        if raw == "tts_say_it" or raw.startswith("tts_say_it "):
+            raw = raw[len("tts_say_it"):].strip()
+        if not raw:
+            yield event.plain_result("用法：/tts_say_it <要念的内容>")
+            return
+        try:
+            wav_path = await manager.post_generate_request_with_session_auth(
+                self.server_ip,
+                port,
+                raw,
+                self.CORRECT_API_KEY,
+                output_path,
+                timeout_seconds=self.request_timeout,
+            )
+            chain = [Record.fromFileSystem(wav_path)] # type: ignore
+            if self.say_send_wav_file:
+                chain.append(File(name=os.path.basename(wav_path), file=wav_path)) # type: ignore
+            yield event.chain_result(chain)
+        except Exception as e:
+            logger.error(f"tts_say_it 生成失败: {e}")
+            yield event.plain_result(f"语音生成失败: {e}")
 
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
