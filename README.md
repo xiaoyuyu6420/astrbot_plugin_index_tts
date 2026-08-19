@@ -2,14 +2,15 @@
 
 > 本 fork（[xiaoyuyu6420/astrbot_plugin_index_tts](https://github.com/xiaoyuyu6420/astrbot_plugin_index_tts)）基于 [xiewoc/astrbot_plugin_index_tts](https://github.com/xiewoc/astrbot_plugin_index_tts) v1.0.4，配合自研后端 [xiaoyuyu6420/indextts2-astrbot-api](https://github.com/xiaoyuyu6420/indextts2-astrbot-api)（IndexTTS 2.0 整合包 API 服务）使用。
 
-## 本 fork 的改动（v1.0.6）
+## 本 fork 的改动（v1.0.8）
 
 1. **合成超时可配置**（`serve_config.request_timeout`，默认 600 秒）——原版硬编码 120 秒，长文本在消费级显卡（如 RTX 3070 低显存模式）上必超时；
 2. **服务端口可配置**（`serve_config.server_port`，默认 5210）——原版硬编码 5210；
 3. **新增生成参数面板配置**：`generation` 组新增 语速 `speaking_speed`（0.5~1.5）与采样参数 `do_sample / top_p / top_k / temperature / repetition_penalty / length_penalty / num_beams / max_mel_tokens`，启动时随 /config 推送给后端；默认值与 IndexTTS webui 一致，原版 service.py 会自动忽略这些字段（互不冲突）；
 4. **全 0 情感向量不再推送**——原版总是推送 `[0]*8`，会让后端进入向量模式、丢失音色参考音频自带的情感；
 5. 修复 register 元数据里的仓库地址笔误（原版指向 spark_tts 仓库）；
-6. **复读指令 `/转语音 <内容>`**（v1.0.7，别名 `/转语言`）：机器人一字不差地念出你输入的内容（不经过 LLM），同时发送语音消息和 wav 文件。权限由 `custom` 组控制：`say_admin_only`（默认开，仅群管理/AstrBot 管理员）、`say_whitelist`（额外放行的 QQ 号）、`say_send_wav_file`（是否附带 wav 文件，默认开）。
+6. **复读指令 `/转语音 <内容>`**（v1.0.7 起，别名 `/转语言`）：机器人一字不差地念出你输入的内容（不经过 LLM），同时发送语音消息和 wav 文件。权限由 `custom` 组控制：`say_admin_only`（默认开，仅群管理/AstrBot 管理员）、`say_whitelist`（额外放行的 QQ 号）、`say_send_wav_file`（是否附带 wav 文件，默认开）；
+7. **状态提示**（v1.0.8）：`/转语音` 触发后立即回复"正在转化…"提示（长文本提示分段合成），合成成功再发语音+wav；失败/超时给出原因和建议。利用 handler 多次 yield 实现逐条推送。
 
 ## 推荐部署方式（免下载模型）
 
